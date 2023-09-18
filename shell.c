@@ -130,10 +130,33 @@ void executeCommand(char **parsedArgs, enum ExecStyle style) {
                 waitpid(pid, &status, 0);  // Wait for child to exit
             }
         }
+        // printf("Debug: Command to execute: %s\n", parsedArgs[0]);
+
+    // if (pid == 0) {
+    //     // Child process
+
+    //     // Debug print to see if inputFile and outputFile are correctly set
+    //     if (inputFile) {
+    //         printf("Debug: Input file: %s\n", inputFile);
+    //     }
+    //     if (outputFile) {
+    //         printf("Debug: Output file: %s\n", outputFile);
+    //     }
+
+    //     if (execvp(parsedArgs[0], parsedArgs) < 0) {
+    //         printf("Could not execute command: %s\n", parsedArgs[0]);
+    //     }
+    //     exit(0);
+    // }
     }
 }
 
 int main() {
+    // Define the history array and counter
+    #define MAX_HISTORY 100
+    char *commandHistory[MAX_HISTORY];
+    int historyCount = 0;
+    
     char input[MAX_INPUT_SIZE];
     char *parsedArgs[MAX_ARG_SIZE];
     char *commands[MAX_COMMANDS];
@@ -142,7 +165,7 @@ int main() {
 
     while (1) {
         // Print the shell prompt
-        printf("myShell> ");
+        printf("\nmyShell> ");
         
         // Take input from user
         if (fgets(input, MAX_INPUT_SIZE, stdin) == NULL) {
@@ -152,6 +175,14 @@ int main() {
         
         // Remove trailing newline character from input
         input[strcspn(input, "\n")] = 0;
+        
+        // Add the command to history
+        if (historyCount < MAX_HISTORY) {
+            commandHistory[historyCount++] = strdup(input);
+        } else {
+            // Implement logic to remove the oldest command and add the newest
+            // if the history is full.
+        }
 
         // Split input into multiple commands separated by ;
         splitCommands(input, commands);
@@ -159,23 +190,31 @@ int main() {
         for (int i = 0; commands[i] != NULL; i++) {
             // Parse each command to separate arguments and options
             parseInput(commands[i], parsedArgs);
+            
+            // Handle !! command
+            if (strcmp(parsedArgs[0], "!!") == 0) {
+                if (historyCount > 0) {
+                    // Execute the last command from history
+                    char *lastCommand = commandHistory[historyCount - 1];
+                    printf("Executing last command: %s\n", lastCommand);  // Debug print
 
+                    // Parse and execute this lastCommand
+                    parseInput(lastCommand, parsedArgs);
+                    executeCommand(parsedArgs, style);
+                } else {
+                    printf("No commands in history.\n");
+                }
+                continue;  // Skip to next iteration of loop
+            }
             // Check for style change commands
             if (strcmp(parsedArgs[0], "style") == 0 && parsedArgs[1] != NULL) {
-                if (strcmp(parsedArgs[1], "seq") == 0) {
-                    style = SEQUENTIAL;
-                    printf("Changed style to SEQUENTIAL\n");
-                } else if (strcmp(parsedArgs[1], "par") == 0) {
-                    style = PARALLEL;
-                    printf("Changed style to PARALLEL\n");
-                }
-                continue;  // Skip to next command
+                // /* Your existing code here */
             }
-
+            
             // Execute each command based on the style (Sequential/Parallel)
             executeCommand(parsedArgs, style);
         }
-
+        
         // If it's parallel, wait for all child processes to complete
         if (style == PARALLEL) {
             while ((wpid = wait(NULL)) > 0);
