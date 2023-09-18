@@ -166,7 +166,6 @@ int main() {
     while (1) {
         // Print the shell prompt
         printf("\nmyShell> ");
-        
         // Take input from user
         if (fgets(input, MAX_INPUT_SIZE, stdin) == NULL) {
             perror("Failed to read input");
@@ -176,14 +175,18 @@ int main() {
         // Remove trailing newline character from input
         input[strcspn(input, "\n")] = 0;
         
-        // Add the command to history
-        if (historyCount < MAX_HISTORY) {
-            commandHistory[historyCount++] = strdup(input);
-        } else {
-            // Implement logic to remove the oldest command and add the newest
-            // if the history is full.
+        // Add this block here
+        // Add the command to history only if it's not "!!"
+        if (strcmp(input, "!!") != 0) {
+            if (historyCount < MAX_HISTORY) {
+                commandHistory[historyCount++] = strdup(input);
+            } else {
+                // Implement logic to remove the oldest command and add the newest
+                // if the history is full.
+            }
         }
-
+        // End of new block
+        
         // Split input into multiple commands separated by ;
         splitCommands(input, commands);
 
