@@ -34,6 +34,10 @@ void executeCommand(char **parsedArgs, enum ExecStyle style, int background) {
     int pipefd[2];
     pid_t pid1, pid2;
 
+    if (parsedArgs[0] == NULL) {
+        printf("Error: No command entered.\n");
+        return;
+    }
     int hasPipe = 0;
     char *parsedArgs2[MAX_ARG_SIZE];
     for (int i = 0; parsedArgs[i] != NULL; i++) {
@@ -99,6 +103,10 @@ void executeCommand(char **parsedArgs, enum ExecStyle style, int background) {
         int status;
 
         pid = fork();
+        if (pid < 0) {
+            perror("Error in fork");
+            return;
+        }
         if (pid == 0) {
             if (inputFile) {
                 freopen(inputFile, "r", stdin);
@@ -110,6 +118,14 @@ void executeCommand(char **parsedArgs, enum ExecStyle style, int background) {
                 printf("Could not execute command: %s\n", parsedArgs[0]);
             }
             exit(0);
+            if (inputFile && freopen(inputFile, "r", stdin) == NULL) {
+                perror("Error opening input file");
+                exit(EXIT_FAILURE);
+            }
+            if (outputFile && freopen(outputFile, "w", stdout) == NULL) {
+                perror("Error opening output file");
+                exit(EXIT_FAILURE);
+            }
         } else {
             if (style == SEQUENTIAL && !background) {
                 waitpid(pid, &status, 0);
@@ -163,6 +179,16 @@ int main(int argc, char *argv[]) {
         }
         input[strcspn(input, "\n")] = 0;
 
+        if (strlen(input) == 0) {
+            printf("Error: Empty command.\n");
+            continue;
+        }
+
+        if (strcmp(input, "exit") == 0) {
+            printf("Exiting shell...\n");
+            break;
+        }
+
         if (strcmp(input, "!!") == 0) {
             if (historyCount > 0) {
                 strcpy(input, commandHistory[historyCount - 1]);
@@ -212,6 +238,7 @@ int main(int argc, char *argv[]) {
             }
         }
     }
+    exit(0);
     return 0;
 }
 

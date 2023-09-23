@@ -1,3 +1,2 @@
-ls -l
-pwd
-date
+locate gcc; ls ..
+exit
