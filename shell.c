@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
     pid_t wpid;
 
     FILE *batchFile = NULL;
-    
+
     if (argc == 2) {
         batchFile = fopen(argv[1], "r");
         if (batchFile == NULL) {
@@ -146,7 +146,6 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
     }
-    
 
     while (1) {
         if (batchFile) {
@@ -155,60 +154,48 @@ int main(int argc, char *argv[]) {
                 break;
             }
         } else {
-            printf("\nShelldon> ");
+            printf("\ntam4@cesar.school %s> ", (style == SEQUENTIAL) ? "seq" : "par");
             if (fgets(input, MAX_INPUT_SIZE, stdin) == NULL) {
                 perror("Failed to read input");
                 exit(EXIT_FAILURE);
             }
         }
         input[strcspn(input, "\n")] = 0;
-        
-        if (strcmp(input, "!!") != 0) {
+
+        if (strcmp(input, "!!") == 0) {
+            if (historyCount > 0) {
+                strcpy(input, commandHistory[historyCount - 1]);
+            } else {
+                printf("No commands in history.\n");
+                continue;
+            }
+        } else {
             if (historyCount < MAX_HISTORY) {
                 commandHistory[historyCount++] = strdup(input);
             }
         }
+
         splitCommands(input, commands);
-        for (int i = 0; commands[i] != NULL; i++) {
-            parseInput(commands[i], parsedArgs);
-
-            if (style == SEQUENTIAL) {
-                executeCommand(parsedArgs, style);
-            } else { // Modo PARALLEL
-                pthread_create(&threads[i], NULL, threadExecuteCommand, (void *)parsedArgs);
-            }
-        }
 
         for (int i = 0; commands[i] != NULL; i++) {
             parseInput(commands[i], parsedArgs);
-            
-            if (strcmp(parsedArgs[0], "!!") == 0) {
-                if (historyCount > 0) {
-                    char *lastCommand = commandHistory[historyCount - 1];
-                    printf("Executing last command: %s\n", lastCommand);
 
-                    parseInput(lastCommand, parsedArgs);
-                    executeCommand(parsedArgs, style);
-                } else {
-                    printf("No commands in history.\n");
-                }
-                continue;
-            }
-            if (strcmp(parsedArgs[0], "style") == 0 && parsedArgs[1] != NULL) {
-            }
             if (strcmp(parsedArgs[0], "style") == 0 && parsedArgs[1] != NULL) {
                 if (strcmp(parsedArgs[1], "sequential") == 0) {
                     style = SEQUENTIAL;
                 } else if (strcmp(parsedArgs[1], "parallel") == 0) {
                     style = PARALLEL;
                 }
-                continue;
+                continue; // Skip to the next iteration, so this command is not executed.
             }
 
-            
-            executeCommand(parsedArgs, style);
+            if (style == SEQUENTIAL) {
+                executeCommand(parsedArgs, style);
+            } else { // PARALLEL
+                pthread_create(&threads[i], NULL, threadExecuteCommand, (void *)parsedArgs);
+            }
         }
-        
+
         if (style == PARALLEL) {
             for (int i = 0; commands[i] != NULL; i++) {
                 pthread_join(threads[i], NULL);
@@ -217,4 +204,5 @@ int main(int argc, char *argv[]) {
     }
     return 0;
 }
+
 
