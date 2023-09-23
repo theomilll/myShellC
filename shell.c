@@ -9,6 +9,7 @@
 #define MAX_INPUT_SIZE 1024
 #define MAX_ARG_SIZE 100
 #define MAX_COMMANDS 10
+#define MAX_HISTORY 100
 
 enum ExecStyle {SEQUENTIAL, PARALLEL};
 
@@ -29,7 +30,7 @@ void splitCommands(char *input, char **commands) {
     }
 }
 
-void executeCommand(char **parsedArgs, enum ExecStyle style) {
+void executeCommand(char **parsedArgs, enum ExecStyle style, int background) {
     int pipefd[2];
     pid_t pid1, pid2;
 
@@ -94,7 +95,7 @@ void executeCommand(char **parsedArgs, enum ExecStyle style) {
             }
         }
 
-        pid_t pid, wpid;
+        pid_t pid;
         int status;
 
         pid = fork();
@@ -102,31 +103,31 @@ void executeCommand(char **parsedArgs, enum ExecStyle style) {
             if (inputFile) {
                 freopen(inputFile, "r", stdin);
             }
-
             if (outputFile) {
                 freopen(outputFile, "w", stdout);
             }
-
             if (execvp(parsedArgs[0], parsedArgs) < 0) {
                 printf("Could not execute command: %s\n", parsedArgs[0]);
             }
             exit(0);
         } else {
-            if (style == SEQUENTIAL) {
+            if (style == SEQUENTIAL && !background) {
                 waitpid(pid, &status, 0);
             }
+        }
+        if (background) {
+            printf("Started background job with PID %d\n", pid);
         }
     }
 }
 
 void *threadExecuteCommand(void *arg) {
     char **parsedArgs = (char **) arg;
-    executeCommand(parsedArgs, PARALLEL);
+    executeCommand(parsedArgs, PARALLEL, 0);
     pthread_exit(0);
 }
 
 int main(int argc, char *argv[]) {
-    #define MAX_HISTORY 100
     char *commandHistory[MAX_HISTORY];
     int historyCount = 0;
     pthread_t threads[MAX_COMMANDS];
@@ -180,18 +181,27 @@ int main(int argc, char *argv[]) {
         for (int i = 0; commands[i] != NULL; i++) {
             parseInput(commands[i], parsedArgs);
 
+            int background = 0;
+            for (int j = 0; parsedArgs[j] != NULL; j++) {
+                if (strcmp(parsedArgs[j], "&") == 0) {
+                    parsedArgs[j] = NULL;
+                    background = 1;
+                    break;
+                }
+            }
+
             if (strcmp(parsedArgs[0], "style") == 0 && parsedArgs[1] != NULL) {
                 if (strcmp(parsedArgs[1], "sequential") == 0) {
                     style = SEQUENTIAL;
                 } else if (strcmp(parsedArgs[1], "parallel") == 0) {
                     style = PARALLEL;
                 }
-                continue; // Skip to the next iteration, so this command is not executed.
+                continue;
             }
 
             if (style == SEQUENTIAL) {
-                executeCommand(parsedArgs, style);
-            } else { // PARALLEL
+                executeCommand(parsedArgs, style, background);
+            } else {
                 pthread_create(&threads[i], NULL, threadExecuteCommand, (void *)parsedArgs);
             }
         }
@@ -204,5 +214,6 @@ int main(int argc, char *argv[]) {
     }
     return 0;
 }
+
 
 
