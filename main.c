@@ -123,7 +123,6 @@ void executeCommand(char **parsedArgs, enum ExecStyle style, int background) {
             if (execvp(parsedArgs[0], parsedArgs) < 0) {
                 printf("Could not execute command: %s\n", parsedArgs[0]);
             }
-            exit(0);
             if (inputFile && freopen(inputFile, "r", stdin) == NULL) {
                 perror("Error opening input file");
                 exit(EXIT_FAILURE);
@@ -138,7 +137,7 @@ void executeCommand(char **parsedArgs, enum ExecStyle style, int background) {
             }
         }
         if (background) {
-            printf("Started background job with PID %d\n", pid);
+            printf("[1] %d\n", pid);
         }
     }
 }
@@ -177,7 +176,7 @@ int main(int argc, char *argv[]) {
                 break;
             }
         } else {
-            printf("\ntam4@cesar.school %s> ", (style == SEQUENTIAL) ? "seq" : "par");
+            printf("\ntam4 %s> ", (style == SEQUENTIAL) ? "seq" : "par");
             if (fgets(input, MAX_INPUT_SIZE, stdin) == NULL) {
                 perror("Failed to read input");
                 exit(EXIT_FAILURE);
