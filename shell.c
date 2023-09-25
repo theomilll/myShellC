@@ -38,12 +38,18 @@ void executeCommand(char **parsedArgs, enum ExecStyle style, int background) {
         printf("Error: No command entered.\n");
         return;
     }
+
     int hasPipe = 0;
     char *parsedArgs2[MAX_ARG_SIZE];
     for (int i = 0; parsedArgs[i] != NULL; i++) {
         if (strcmp(parsedArgs[i], "|") == 0) {
             hasPipe = 1;
             parsedArgs[i] = NULL;
+
+            if (parsedArgs[i+1] == NULL) {
+                printf("Error: No command after pipe symbol.\n");
+                return;
+            }
 
             int j = 0;
             i++;
